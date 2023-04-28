@@ -1,40 +1,47 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-
+Copyright © 2023 NAME HERE rbnorthcutt@gmail.com
 */
+
 package cmd
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/spf13/cobra"
 )
+
+var url string
 
 // scrapeCmd represents the scrape command
 var scrapeCmd = &cobra.Command{
 	Use:   "scrape",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Scrape a website",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("scrape called")
+		resp, err := http.Get(url)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		doc, err := goquery.NewDocumentFromReader(resp.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Your scraping code goes here, for example:
+		doc.Find("h1").Each(func(i int, s *goquery.Selection) {
+			fmt.Printf("Heading %d: %s\n", i+1, s.Text())
+		})
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(scrapeCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// scrapeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// scrapeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	scrapeCmd.Flags().StringVar(&url, "url", "", "URL to scrape")
+	scrapeCmd.MarkFlagRequired("url")
 }
+
